@@ -26,7 +26,7 @@ function QuadcopterDist(x0,xF,N,Ts,R,ob1,ob2,ob3,ob4,ob5,xWS,uWS,timeWS)
 
  	m = Model(Ipopt.Optimizer)
 	set_optimizer_attribute(m, "hessian_approximation", "exact")
-	set_optimizer_attribute(m, "mumps_pivot", 5e-7)
+	set_optimizer_attribute(m, "mumps_pivtol", 5e-7)
 	set_optimizer_attribute(m, "mumps_mem_percent", 10000)
 	set_optimizer_attribute(m, "recalc_y", "no")
 	set_optimizer_attribute(m, "alpha_for_y", "min")
@@ -65,14 +65,14 @@ function QuadcopterDist(x0,xF,N,Ts,R,ob1,ob2,ob3,ob4,ob5,xWS,uWS,timeWS)
 
 	k_F = 0.0611;#6.11*1e-8         #[N/rpm^2]
 	k_M = 0.0015;#1.5*1e-9          #[Nm/rpm^2]
-	I = [3.9,4.4,4.9]*1e-3  #[kg/m2]
+	J = [3.9,4.4,4.9]*1e-3  #[kg/m2]
 	L = 0.225               #[m]
 
 	w_H = sqrt((mass*g)/(k_F*4))
 
 	# cost function
-	 @NLobjective(m, Min,1e-3*sum( sum((w_H-u[j,i])^2 for j=1:4)  for i = 1:N) + 
-	                     1e-2*sum( sum((u[j,i]-u[j,i+1])^2 for j=1:4)  for i = 1:N-1) + 
+	@NLobjective(m, Min,1e-3*sum( sum((w_H-u[j,i])^2 for j=1:4)  for i = 1:N) +
+	                     1e-2*sum( sum((u[j,i]-u[j,i+1])^2 for j=1:4)  for i = 1:N-1) +
 	                     1*sum(sum(reg3*x[j,i]^2  for i = 1:N+1) for j = [10,11,12]) +
 	                     sum(0.25*timeScale[i] + 5*timeScale[i]^2 for i = 1:N+1)  +
 	                     1*sum(sum(reg2*l1[j,i]^2 + reg2*l2[j,i]^2 + reg2*l3[j,i]^2 + reg2*l4[j,i]^2+ reg2*l5[j,i]^2 for i = 1:N+1) for j = 1:6));
@@ -156,62 +156,62 @@ function QuadcopterDist(x0,xF,N,Ts,R,ob1,ob2,ob3,ob4,ob5,xWS,uWS,timeWS)
 	    @NLconstraint(m, x[9,i+1] == x[9,i] + timeScale[i]*Ts*1/mass*(sum(k_F*u[j,i]^2 for j=1:4)*( cos(x[4,i])*cos(x[5,i])) - mass*g ))
 
 	    # pitch_rate, roll_rate
-	    @NLconstraint(m, x[10,i+1] == x[10,i] + timeScale[i]*Ts*1/I[1]*(L*k_F*(u[2,i]^2 - u[4,i]^2)                     - (I[3] - I[2])*x[11]*x[12]))
-	    @NLconstraint(m, x[11,i+1] == x[11,i] + timeScale[i]*Ts*1/I[2]*(L*k_F*(u[3,i]^2 - u[1,i]^2)                     - (I[1] - I[3])*x[10]*x[12]))
-	    @NLconstraint(m, x[12,i+1] == x[12,i] + timeScale[i]*Ts*1/I[3]*(k_M*(u[1,i]^2 - u[2,i]^2 + u[3,i]^2 - u[4,i]^2) - (I[2] - I[1])*x[10]*x[11]))
+	    @NLconstraint(m, x[10,i+1] == x[10,i] + timeScale[i]*Ts*1/J[1]*(L*k_F*(u[2,i]^2 - u[4,i]^2)                     - (J[3] - J[2])*x[11]*x[12]))
+	    @NLconstraint(m, x[11,i+1] == x[11,i] + timeScale[i]*Ts*1/J[2]*(L*k_F*(u[3,i]^2 - u[1,i]^2)                     - (J[1] - J[3])*x[10]*x[12]))
+	    @NLconstraint(m, x[12,i+1] == x[12,i] + timeScale[i]*Ts*1/J[3]*(k_M*(u[1,i]^2 - u[2,i]^2 + u[3,i]^2 - u[4,i]^2) - (J[2] - J[1])*x[10]*x[11]))
 
 	    @constraint(m, timeScale[i] == timeScale[i+1])
 	end
 
 
 
-	A = [eye(3);
-	    -eye(3)];
+	A = [Matrix{Float64}(I, 3, 3);
+	    -Matrix{Float64}(I, 3, 3)];
 
 	for i in 1:N+1
 	    # rotation matrix
 
 	    b1 = ob1
 	    @NLconstraint(m, (l1[1,i]-l1[4,i])^2 + (l1[2,i]-l1[5,i])^2 + (l1[3,i]-l1[6,i])^2 == 1)		# == (sd), <= (d)
-	    @NLconstraint(m,sum(-b1[j]*l1[j,i] for j = 1:6) + x[1,i]*sum(A[j,1]*l1[j,i] for j=1:6) + 
+	    @NLconstraint(m,sum(-b1[j]*l1[j,i] for j = 1:6) + x[1,i]*sum(A[j,1]*l1[j,i] for j=1:6) +
 	                         x[2,i]*sum(A[j,2]*l1[j,i] for j=1:6) + x[3,i]*sum(A[j,3]*l1[j,i] for j=1:6) >=R)
 
 	    ######################
 	    b2 = ob2
 	    @NLconstraint(m, (l2[1,i]-l2[4,i])^2 + (l2[2,i]-l2[5,i])^2 + (l2[3,i]-l2[6,i])^2 == 1)		# ==
-	    @NLconstraint(m,sum(-b2[j]*l2[j,i] for j = 1:6) + x[1,i]*sum(A[j,1]*l2[j,i] for j=1:6) + 
+	    @NLconstraint(m,sum(-b2[j]*l2[j,i] for j = 1:6) + x[1,i]*sum(A[j,1]*l2[j,i] for j=1:6) +
 	                         x[2,i]*sum(A[j,2]*l2[j,i] for j=1:6) + x[3,i]*sum(A[j,3]*l2[j,i] for j=1:6) >=R)
 
 	    #########################
 	    b3 = ob3
 	    @NLconstraint(m, (l3[1,i]-l3[4,i])^2 + (l3[2,i]-l3[5,i])^2 + (l3[3,i]-l3[6,i])^2 == 1)		# ==
-	    @NLconstraint(m,sum(-b3[j]*l3[j,i] for j = 1:6) + x[1,i]*sum(A[j,1]*l3[j,i] for j=1:6) + 
+	    @NLconstraint(m,sum(-b3[j]*l3[j,i] for j = 1:6) + x[1,i]*sum(A[j,1]*l3[j,i] for j=1:6) +
 	                         x[2,i]*sum(A[j,2]*l3[j,i] for j=1:6) + x[3,i]*sum(A[j,3]*l3[j,i] for j=1:6) >=R)
 
 	    #########################
 	    b4 = ob4
 	    @NLconstraint(m, (l4[1,i]-l4[4,i])^2 + (l4[2,i]-l4[5,i])^2 + (l4[3,i]-l4[6,i])^2 == 1)		# ==
-	    @NLconstraint(m,sum(-b4[j]*l4[j,i] for j = 1:6) + x[1,i]*sum(A[j,1]*l4[j,i] for j=1:6) + 
+	    @NLconstraint(m,sum(-b4[j]*l4[j,i] for j = 1:6) + x[1,i]*sum(A[j,1]*l4[j,i] for j=1:6) +
 	                         x[2,i]*sum(A[j,2]*l4[j,i] for j=1:6) + x[3,i]*sum(A[j,3]*l4[j,i] for j=1:6) >=R)
 
 	    #########################
 	    b5 = ob5
 	    @NLconstraint(m, (l5[1,i]-l5[4,i])^2 + (l5[2,i]-l5[5,i])^2 + (l5[3,i]-l5[6,i])^2 == 1)		# ==
-	    @NLconstraint(m,sum(-b5[j]*l5[j,i] for j = 1:6) + x[1,i]*sum(A[j,1]*l5[j,i] for j=1:6) + 
+	    @NLconstraint(m,sum(-b5[j]*l5[j,i] for j = 1:6) + x[1,i]*sum(A[j,1]*l5[j,i] for j=1:6) +
 	                         x[2,i]*sum(A[j,2]*l5[j,i] for j=1:6) + x[3,i]*sum(A[j,3]*l5[j,i] for j=1:6) >=R)
 
 	end
 
-	setvalue(timeScale,timeWS*ones(N+1,1))
+	set_start_value.(timeScale,timeWS*ones(N+1,1))
 
-	setvalue(x,xWS)
-	setvalue(u,w_H*ones(4,N)) # faster not to warm-start
+	set_start_value.(x,xWS)
+	set_start_value.(u,w_H*ones(4,N)) # faster not to warm-start
 
-	setvalue(l1,0.05*ones(6,N+1))
-	setvalue(l2,0.05*ones(6,N+1))
-	setvalue(l3,0.05*ones(6,N+1))
-	setvalue(l4,0.05*ones(6,N+1))
-	setvalue(l5,0.05*ones(6,N+1))
+	set_start_value.(l1,0.05*ones(6,N+1))
+	set_start_value.(l2,0.05*ones(6,N+1))
+	set_start_value.(l3,0.05*ones(6,N+1))
+	set_start_value.(l4,0.05*ones(6,N+1))
+	set_start_value.(l5,0.05*ones(6,N+1))
 
 
 	time1 = 0
@@ -220,9 +220,9 @@ function QuadcopterDist(x0,xF,N,Ts,R,ob1,ob2,ob3,ob4,ob5,xWS,uWS,timeWS)
 	time4 = 0
 
 
-	tic()
-	status = solve(m; suppress_warnings=true)
-	time1 = toq()
+	start = time()
+	status = optimize!(m)#; suppress_warnings=true)
+	time1 = time() - start
 
 	# println(time1)
 
@@ -240,25 +240,25 @@ function QuadcopterDist(x0,xF,N,Ts,R,ob1,ob2,ob3,ob4,ob5,xWS,uWS,timeWS)
 	    if status == :Optimal
 	        exitflag = 1
 	    elseif status ==:Error || status ==:UserLimit
-	        tic()
-	        status = solve(m; suppress_warnings=true)
-	        time2 = toq()
+			start = time()
+	        status = optimize!(m)#; suppress_warnings=true)
+	        time2 = time() - start
 			# println("time2: ", time2)
 
 	        if status == :Optimal
 	            exitflag = 1
 	        elseif status ==:Error || status ==:UserLimit
-	            tic()
-	            status = solve(m; suppress_warnings=true)
-	            time3 = toq()
+	            start = time()
+	            status = optimize!(m)#; suppress_warnings=true)
+	            time3 = time() - start
 
 	            if status == :Optimal
 	                exitflag = 1
 	            elseif status ==:Error || status ==:UserLimit
 
-	                tic()
-	                status = solve(m; suppress_warnings=true)
-	                time4 = toq()
+	                start - time()
+	                status = optimize!(m)#; suppress_warnings=true)
+	                time4 = time() - start
 
 	                if status == :Optimal
 	                    exitflag = 1
@@ -276,20 +276,19 @@ function QuadcopterDist(x0,xF,N,Ts,R,ob1,ob2,ob3,ob4,ob5,xWS,uWS,timeWS)
 	    end
 	end
 
-	time = time1+time2+time3+time4
+	time_all = time1+time2+time3+time4
 
-	xp = getvalue(x)
-	up = getvalue(u)
-	timeScalep = getvalue(timeScale)
-	l1p = getvalue(l1)
-	l2p	= getvalue(l2)
-	l3p = getvalue(l3)
-	l4p = getvalue(l4)
-	l5p = getvalue(l5)
+	xp = JuMP.value.(x)
+	up = JuMP.value.(u)
+	timeScalep = JuMP.value.(timeScale)
+	l1p = JuMP.value.(l1)
+	l2p	= JuMP.value.(l2)
+	l3p = JuMP.value.(l3)
+	l4p = JuMP.value.(l4)
+	l5p = JuMP.value.(l5)
 	lp = [l1p ; l2p ; l3p ; l4p ; l5p]
-	
-	
-	return xp, up, timeScalep, exitflag, time, lp, string(status)
+
+
+	return xp, up, timeScalep, exitflag, time_all, lp, string(status)
 
 end
-

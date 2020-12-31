@@ -145,7 +145,7 @@ function plotTrajQuadcopter(xp,up,N,ego,ob1,ob2,ob3,ob4,ob5,ob6,R,disp_title,fig
 	L_tv1 = ob1[1]+ob1[4]
 	W_tv1 = ob1[2]+ob1[5]
 	H_tv1 = ob1[3]+ob1[6]
-	
+
 	L_tv2 = ob2[1]+ob2[4]
 	W_tv2 = ob2[2]+ob2[5]
 	H_tv2 = ob2[3]+ob2[6]
@@ -172,7 +172,7 @@ function plotTrajQuadcopter(xp,up,N,ego,ob1,ob2,ob3,ob4,ob5,ob6,R,disp_title,fig
 	    # subplot(3,1,1)
 	    carBox(obcenter1,0,W_tv1/2,L_tv1/2)
 		title("X-Y plot")
-	    hold(1)
+	    #hold(1)
 	    carBox(obcenter2,0,W_tv2/2,L_tv2/2)
 	    carBox(obcenter3,0,W_tv3/2,L_tv3/2)
 	    carBox(obcenter4,0,W_tv4/2,L_tv4/2)
@@ -184,18 +184,18 @@ function plotTrajQuadcopter(xp,up,N,ego,ob1,ob2,ob3,ob4,ob5,ob6,R,disp_title,fig
 	          xp[i,2]]
 
 	    plot(xp[1:i,1],xp[1:i,2],"b")
-	    hold(1)
+	    #hold(1)
 	    quadCircle(x0,R)
 
 	    axis("equal")
 	    axis([-2,12,-2,12])
-		hold(0)
-		
+		#hold(0)
+
 	    ######### X-Z plot #############
 	    figure(2+figNumOffset)
 	    carBox(obcenter1[[1,3]],0,H_tv1/2,L_tv1/2)
 		title("X-Z plot")
-	    hold(1)
+	    #hold(1)
 	    carBox(obcenter2[[1,3]],0,H_tv2/2,L_tv2/2)
 	    carBox(obcenter3[[1,3]],0,H_tv3/2,L_tv3/2)
 	    carBox(obcenter4[[1,3]],0,H_tv4/2,L_tv4/2)
@@ -207,23 +207,23 @@ function plotTrajQuadcopter(xp,up,N,ego,ob1,ob2,ob3,ob4,ob5,ob6,R,disp_title,fig
 	          xp[i,3]]
 
 	    plot(xp[1:i,1],xp[1:i,3],"b")
-	    hold(1)
+	    #hold(1)
 	    quadCircle(x0,R)
 
 	    axis("equal")
 	    axis([-2,12,-1,6])
-	    hold(0)
-		
+	    #hold(0)
+
 	    # 3D plots
 		figure(3+figNumOffset)
-	    
+
 	    x0 = [xp[i,1];
 	          xp[i,2];
 	          xp[i,3]]
 
 	    plot3D(xp[1:i,1],xp[1:i,2],xp[1:i,3],"b")
 		title(disp_title)
-	    hold(1)
+	    #hold(1)
 	    Box3D(obcenter1,L_tv1/2,W_tv1/2,H_tv1/2)
 	    Box3D(obcenter2,L_tv2/2,W_tv2/2,H_tv2/2)
 	    Box3D(obcenter3,L_tv3/2,W_tv3/2,H_tv3/2)
@@ -232,11 +232,11 @@ function plotTrajQuadcopter(xp,up,N,ego,ob1,ob2,ob3,ob4,ob5,ob6,R,disp_title,fig
 	    Box3D(obcenter6,L_tv6/2,W_tv6/2,H_tv6/2)
 	    quadBall(x0,R)
 
-	    axis("equal")
+	    #axis("equal")
 	    axis([0,10,0,10])
 	    zlim([0,5])
-	    hold(0)
-	    
+	    #hold(0)
+
 	    sleep(0.001)
 	end
 
@@ -278,66 +278,66 @@ function carBox(x0,phi,w,l)
     car4 = x0[1:2] - [cos(phi)*l;sin(phi)*l] - [sin(phi)*w;-cos(phi)*w];
 
     plot([car1[1],car2[1],car4[1],car3[1],car1[1]],[car1[2],car2[2],car4[2],car3[2],car1[2]],"k")
-    
+
 end
 
 function Box3D(x0,l,w,h)
 
-	X = x0[1] + [l,l,-l,-l,l]
-	Y = x0[2] + [-w,w,w,-w,-w]
-	Z = x0[3] + [-h,-h,-h,-h,-h]
+	X = x0[1] .+ [l,l,-l,-l,l]
+	Y = x0[2] .+ [-w,w,w,-w,-w]
+	Z = x0[3] .+ [-h,-h,-h,-h,-h]
 
     plot3D(X,Y,Z,"k")
 
-    Z = x0[3] + [h,h,h,h,h]
+    Z = x0[3] .+ [h,h,h,h,h]
     plot3D(X,Y,Z,"k")
 
-    X = x0[1] + [l,l]
-	Y = x0[2] + [-w,-w]
-	Z = x0[3] + [-h, h]
+    X = x0[1] .+ [l,l]
+	Y = x0[2] .+ [-w,-w]
+	Z = x0[3] .+ [-h, h]
 	plot3D(X,Y,Z,"k")
 
-	X = x0[1] + [l,l]
-	Y = x0[2] + [w,w]
-	Z = x0[3] + [-h, h]
+	X = x0[1] .+ [l,l]
+	Y = x0[2] .+ [w,w]
+	Z = x0[3] .+ [-h, h]
 	plot3D(X,Y,Z,"k")
 
-	X = x0[1] + [-l,-l]
-	Y = x0[2] + [-w,-w]
-	Z = x0[3] + [-h, h]
+	X = x0[1] .+ [-l,-l]
+	Y = x0[2] .+ [-w,-w]
+	Z = x0[3] .+ [-h, h]
 	plot3D(X,Y,Z,"k")
 
-	X = x0[1] + [-l,-l]
-	Y = x0[2] + [w,w]
-	Z = x0[3] + [-h, h]
+	X = x0[1] .+ [-l,-l]
+	Y = x0[2] .+ [w,w]
+	Z = x0[3] .+ [-h, h]
 	plot3D(X,Y,Z,"k")
-    
+
 end
 
 function quadCircle(x0,R)
-	phi = linspace(0,2*pi,30);
-	X = x0[1] + R*cos(phi)
-	Y = x0[2] + R*sin(phi)
+	phi = range(0.0,stop=2*pi,length=30);
+	X = x0[1] .+ R*cos.(phi)
+	Y = x0[2] .+ R*sin.(phi)
 	plot(X,Y,"k")
 
 end
 
 function quadBall(x0,R)
-	phi = linspace(0,2*pi,30);
+	phi = range(0.0,stop=2*pi,length=30);
 
-	X = x0[1] + R*cos(phi)
-	Y = x0[2] + R*sin(phi)
+	X = x0[1] .+ R*cos.(phi)
+	Y = x0[2] .+ R*sin.(phi)
 	Z = x0[3]
 	plot3D(X,Y,Z,"k")
 
-	X = x0[1] + R*cos(phi)
-	Y = x0[2] + zeros(30,1)
-	Z = x0[3] + R*sin(phi)
+	X = x0[1] .+ R*cos.(phi)
+	Y = x0[2] .+ zeros(30,1)
+	Z = x0[3] .+ R*sin.(phi)
 	plot3D(X,Y,Z,"k")
 
-	X = x0[1] + zeros(30,1)
-	Y = x0[2] + R*cos(phi)
-	Z = x0[3] + R*sin(phi)
-	plot3D(X,Y,Z,"k")
+	X = x0[1] .+ zeros(30,1)
+	Y = x0[2] .+ R*cos.(phi)
+	Z = x0[3] .+ R*sin.(phi)
+	#plot3D(X,Y,Z,"k")
 
 end
