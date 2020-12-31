@@ -23,17 +23,17 @@
 ###############
 
 module a_star	# new scope, good for defining global variables
-
+using DataStructures
 using NearestNeighbors, JuMP, Ipopt
 using PyPlot
 
 const VEHICLE_RADIUS = 2.5# const GRID_RESOLUTION = 1.0 #[m], def 2.0
 const H_WEIGHT = 1.1	# weight for heuristic function
 
-type Node
+mutable struct Node
     x::Int64  #x index
     y::Int64  #y index
-	z::Int64  #z index (added)	
+	z::Int64  #z index (added)
     cost::Float64 # cost
     pind::Int64 # parent index
 end
@@ -47,7 +47,7 @@ end
 # (sx, sy, sz, gx, gy, gz, ox, oy, oz, xmin, ymin, zmin, xmax, ymax, zmax, GRID_RESOLUTION)
 
 function calc_astar_path(sx::Float64, sy::Float64, sz::Float64, gx::Float64, gy::Float64, gz::Float64,
-                         ox::Array{Float64}, oy::Array{Float64}, oz::Array{Float64}, 
+                         ox::Array{Float64}, oy::Array{Float64}, oz::Array{Float64},
 						 xmin::Float64, ymin::Float64, zmin::Float64,
 						 xmax::Float64, ymax::Float64, zmax::Float64,
 						 reso::Float64)
@@ -63,33 +63,33 @@ function calc_astar_path(sx::Float64, sy::Float64, sz::Float64, gx::Float64, gy:
 	oz: z position list of Obstacles [m]
     reso: grid resolution [m]
     """
-    tic()
-	
+    start = time()
+
     nstart = Node(Int(round(sx/reso)),Int(round(sy/reso)),Int(round(sz/reso)),0.0, -1)
     ngoal = Node(Int(round(gx/reso)),Int(round(gy/reso)),Int(round(gz/reso)),0.0, -1)
-	
+
 
     ox = [iox/reso for iox in ox]
     oy = [ioy/reso for ioy in oy]
 	oz = [ioz/reso for ioz in oz]
-	
+
 
     obmap, minx, miny, minz, maxx, maxy, maxz, xw, yw, zw = calc_obstacle_map(ox, oy, oz, xmin, ymin, zmin, xmax, ymax, zmax, reso)
-    miniTime = toq();
+    miniTime = time() - start;
     # print("MiniTime ",miniTime,"\n")
-    tic()
+    start = time()
     #open, closed set
     open, closed = Dict{Int64, Node}(), Dict{Int64, Node}()
 
-    pqOpen = Collections.PriorityQueue(Int64,Float64)
-	
+    pqOpen = PriorityQueue{Int64,Float64}()
+
     open[calc_index(nstart, xw, zw, minx, miny, minz)] = nstart	# ??????; weird if start is minx miny minz -> zero indexing!
-    Collections.enqueue!(pqOpen,calc_index(nstart, xw, zw, minx, miny, minz),nstart.cost+H_WEIGHT*h(nstart.x - ngoal.x, nstart.y - ngoal.y, nstart.z-ngoal.z))
+    enqueue!(pqOpen,calc_index(nstart, xw, zw, minx, miny, minz),nstart.cost+H_WEIGHT*h(nstart.x - ngoal.x, nstart.y - ngoal.y, nstart.z-ngoal.z))
 
 
     motion = get_motion_model()
     nmotion = length(motion[:,1])
-	
+
 	tmpCounter = 1
     while true
         if length(open) == 0
@@ -97,7 +97,7 @@ function calc_astar_path(sx::Float64, sy::Float64, sz::Float64, gx::Float64, gy:
 			break
 		end
 
-		c_id = Collections.dequeue!(pqOpen)
+		c_id = dequeue!(pqOpen)
 		current = open[c_id]
 
 
@@ -120,9 +120,9 @@ function calc_astar_path(sx::Float64, sy::Float64, sz::Float64, gx::Float64, gy:
             if (node.y - miny) <= 0 continue end
             if (node.z - minz) >= zw continue end
             if (node.z - minz) <= 0 continue end
-			
+
 			#collision check
-            if obmap[node.x-minx+1, node.y-miny+1, node.z-minz+1] continue end 
+            if obmap[node.x-minx+1, node.y-miny+1, node.z-minz+1] continue end
 
             node_ind = calc_index(node, xw, zw, minx, miny, minz)
 
@@ -139,15 +139,15 @@ function calc_astar_path(sx::Float64, sy::Float64, sz::Float64, gx::Float64, gy:
                 end
             else # add to open set
                 open[node_ind] = node
-                Collections.enqueue!(pqOpen,node_ind,node.cost+H_WEIGHT*h(node.x - ngoal.x, node.y - ngoal.y, node.z-ngoal.z))
+                enqueue!(pqOpen,node_ind,node.cost+H_WEIGHT*h(node.x - ngoal.x, node.y - ngoal.y, node.z-ngoal.z))
             end
         end		# end nmotion
 
-	
+
 	tmpCounter = tmpCounter + 1
-	
+
     end
-	runTime = toq()
+	runTime = start - time()
     rx, ry, rz = get_final_path(closed, ngoal, nstart, xw, zw, minx, miny, minz, reso)
 
     return rx, ry, rz, runTime
@@ -197,14 +197,14 @@ function calc_obstacle_map(	ox::Array{Float64}, oy::Array{Float64}, oz::Array{Fl
 	push!(ox,xmin,xmax)
 	push!(oy,ymin,ymax)
 	push!(oz,zmin,zmax)
-	
+
     minx = Int(round(minimum(ox)))
     miny = Int(round(minimum(oy)))
-	minz = Int(round(minimum(oz))) 
+	minz = Int(round(minimum(oz)))
 	maxx = Int(round(maximum(ox)))
     maxy = Int(round(maximum(oy)))
 	maxz = Int(round(maximum(oz)))
-	
+
     xwidth = Int(maxx - minx)
     ywidth = Int(maxy - miny)
 	zwidth = Int(maxz - minz)
@@ -212,15 +212,15 @@ function calc_obstacle_map(	ox::Array{Float64}, oy::Array{Float64}, oz::Array{Fl
     obmap = fill(false, (xwidth,ywidth,zwidth))
 
     kdtree = KDTree(hcat(ox, oy, oz)')
-    for ix in 1:xwidth 
+    for ix in 1:xwidth
         x = (ix-1) + minx
-        for iy in 1:ywidth 
+        for iy in 1:ywidth
             y = (iy-1) + miny
 			for iz in 1:zwidth
 				z = (iz-1) + minz
-				
+
 				idxs, onedist = knn(kdtree, [x, y, z] , 1)
-            	if onedist[1] <= VEHICLE_RADIUS/reso 
+            	if onedist[1] <= VEHICLE_RADIUS/reso
                 	obmap[ix,iy,iz] = true
             	end
 			end
@@ -241,7 +241,7 @@ function get_final_path(closed::Dict{Int64, Node},
                         reso::Float64)
 
     rx, ry ,rz = [ngoal.x],[ngoal.y], [ngoal.z]
-	
+
     nid = calc_index(ngoal, xw, zw, minx, miny, minz)
     while true
 		n = closed[nid]
@@ -267,14 +267,14 @@ end
 function search_min_cost_node(open::Dict{Int64, Node}, ngoal::Node,Hmat)
     mnode = nothing
     mcost = Inf
-	
+
 	# find best node in open set
     for n in values(open)
         # println("candidate node:", n)
         cost = n.cost + H_WEIGHT*Hmat[Int(n.x+1), Int(n.y+1), Int(n.z+1)]	# compute gScore + hScore (cost from start to n + heuristics)
         if mcost > cost
-            mnode = n 
-            mcost = cost 
+            mnode = n
+            mcost = cost
         end
     end
 
@@ -304,7 +304,7 @@ function main()
 	for yy = 10 : 10 : 10		# 90
 		for zz = 10 : 10 : 10 	# 40
 			i = i+1
-			
+
 			# all FLOAT for performance
 			# everthing in [m] for convenience
 			xmin = 0.0
@@ -313,21 +313,21 @@ function main()
 			xmax = 105.0
 			ymax = 105.0
 			zmax = 55.0
-	
+
 		    sx = 10.0  # [m]
 		    sy = 10.0  # [m]
 			sz = 30.0  # [m]
-	
+
 		    gx = 90.0  # [m]
 		    gy = 80.0  # [m]
 			gy = Float64(yy)
 			gz = 40.0  # [m]
 			gz = Float64(zz)
 			# build obstacles
-	
+
 			println("gy: ", gy)
 			println("gz: ", gz)
-	
+
 		    ox = Float64[]
 		    oy = Float64[]
 			oz = Float64[]
@@ -338,16 +338,16 @@ function main()
 					for zz in 6 : 55
 						push!(ox,Float64(xx))
 						push!(oy,Float64(yy))
-						push!(oz,Float64(zz))	
+						push!(oz,Float64(zz))
 					end
-				end	
+				end
 			end
 
 			# second obstacle
 		    ox1 = Float64[]
 		    oy1 = Float64[]
 			oz1 = Float64[]
-	
+
 			for xx = 70 : 75
 				# left piece
 				for yy = 0 : 40
@@ -355,7 +355,7 @@ function main()
 						push!(ox, Float64(xx))
 						push!(oy, Float64(yy))
 						push!(oz, Float64(zz))
-			
+
 						push!(ox1, Float64(xx))
 						push!(oy1, Float64(yy))
 						push!(oz1, Float64(zz))
@@ -367,7 +367,7 @@ function main()
 						push!(ox, Float64(xx))
 						push!(oy,Float64(yy))
 						push!(oz,Float64(zz))
-			
+
 						push!(ox1, Float64(xx))
 						push!(oy1,Float64(yy))
 						push!(oz1,Float64(zz))
@@ -379,7 +379,7 @@ function main()
 						push!(ox, Float64(xx))
 						push!(oy,Float64(yy))
 						push!(oz,Float64(zz))
-			
+
 						push!(ox1, Float64(xx))
 						push!(oy1,Float64(yy))
 						push!(oz1,Float64(zz))
@@ -391,14 +391,14 @@ function main()
 						push!(ox, Float64(xx))
 						push!(oy,Float64(yy))
 						push!(oz,Float64(zz))
-			
+
 						push!(ox1, Float64(xx))
 						push!(oy1,Float64(yy))
 						push!(oz1,Float64(zz))
 					end
 				end
 			end
-			
+
 		    rx, ry, rz = calc_astar_path(	sx, sy, sz, 		# start
 												gx, gy, gz, 		# goal
 												ox, oy, oz, 		# list of obstacles
@@ -422,10 +422,10 @@ function main()
 			xlabel("X [m]")
 			ylabel("Y [m]")
 			zlabel("Z [m]")
-			
+
 			rx_smooth, ry_smooth, rz_smooth = smoothenPath(rx,ry,rz)
-			
-			
+
+
 		end # end for-zz
 	end	# end for-xx
 	# println("*** horizonLengths: ", horizonLengths)
@@ -436,7 +436,7 @@ function main()
 end
 
 if length(PROGRAM_FILE)!=0 &&
-    contains(@__FILE__, PROGRAM_FILE)
+    occursin(@__FILE__, PROGRAM_FILE)
 
     main()
 end
@@ -448,4 +448,3 @@ end
 
 
 end #module
-

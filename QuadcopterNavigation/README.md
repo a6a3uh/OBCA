@@ -9,7 +9,7 @@ Paper describing the theory can be found [here](http://arxiv.org/abs/1711.03449)
 
 1. Change to the directory
 
-2. Install Julia from https://julialang.org/downloads/ (code tested on version 0.5 and 0.6) 
+2. Install Julia from https://julialang.org/downloads/ (code tested on version 0.5 and 0.6)
 
 3. Open Julia in terminal
 
@@ -21,8 +21,10 @@ Paper describing the theory can be found [here](http://arxiv.org/abs/1711.03449)
 
 7. Install Julia package PyPlot using Pkg.add("NearestNeighbors")
 
+8. Install Julia package DataStructures using Pkg.add("DataStructures")
 
-### Running the parking example 
+
+### Running the parking example
 
 1. Start Julia in terminal
 
@@ -31,13 +33,13 @@ Paper describing the theory can be found [here](http://arxiv.org/abs/1711.03449)
 3. Type in terminal: include("mainQuadcopter.jl")
 
 
-### modifying the code 
+### modifying the code
 
-1. To play with start points, change xF (or x0) in mainQuadcopter.jl and run 
+1. To play with start points, change xF (or x0) in mainQuadcopter.jl and run
 the code by include("mainQuadcopter.jl")
 
 2. If you change anything in one of the collision avoidance
-problems, you need to activate the changes by running 
+problems, you need to activate the changes by running
 include("setupQuadcopter.jl")
 
 

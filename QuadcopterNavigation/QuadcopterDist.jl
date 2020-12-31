@@ -20,14 +20,26 @@
 # The paper describing the theory can be found here:
 # 	X. Zhang, A. Liniger and F. Borrelli; "Optimization-Based Collision Avoidance"; Technical Report, 2017, [https://arxiv.org/abs/1711.03449]
 ###############
-
+using LinearAlgebra
 
 function QuadcopterDist(x0,xF,N,Ts,R,ob1,ob2,ob3,ob4,ob5,xWS,uWS,timeWS)
 
- 	m = Model(solver=IpoptSolver(hessian_approximation="exact",mumps_pivtol=5e-7,mumps_pivtolmax=0.1,mumps_mem_percent=10000,
- 	                             recalc_y="no",alpha_for_y="min",required_infeasibility_reduction=0.65,
- 	                             min_hessian_perturbation=1e-10,jacobian_regularization_value=1e-7,tol=1e-5,
- 	                             print_level=0))#state
+ 	m = Model(Ipopt.Optimizer)
+	set_optimizer_attribute(m, "hessian_approximation", "exact")
+	set_optimizer_attribute(m, "mumps_pivot", 5e-7)
+	set_optimizer_attribute(m, "mumps_mem_percent", 10000)
+	set_optimizer_attribute(m, "recalc_y", "no")
+	set_optimizer_attribute(m, "alpha_for_y", "min")
+	set_optimizer_attribute(m, "required_infeasibility_reduction", 0.65)
+	set_optimizer_attribute(m, "min_hessian_perturbation", 1e-10)
+	set_optimizer_attribute(m, "jacobian_regularization_value", 1e-7)
+	set_optimizer_attribute(m, "tol", 1e-5)
+	set_optimizer_attribute(m, "print_level", 0)
+
+	#solver=IpoptSolver(hessian_approximation="exact",mumps_pivtol=5e-7,mumps_pivtolmax=0.1,mumps_mem_percent=10000,
+ 	#                             recalc_y="no",alpha_for_y="min",required_infeasibility_reduction=0.65,
+ 	#                             min_hessian_perturbation=1e-10,jacobian_regularization_value=1e-7,tol=1e-5,
+ 	#                             print_level=0))#state
 
 
 	@variable(m, x[1:12,1:(N+1)])
